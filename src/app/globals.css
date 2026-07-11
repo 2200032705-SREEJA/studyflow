@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-paper text-ink dark:bg-ink dark:text-paper font-body antialiased;
+}
+
+h1, h2, h3 {
+  @apply font-display;
+}
+
+::selection {
+  background-color: #C98A2B33;
+}

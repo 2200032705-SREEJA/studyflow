@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AssignmentStatus {
+  NOT_STARTED
+  PLANNING
+  DRAFT_READY
+  REVIEWED
+  COMPLETED
+}
+
+enum RatingLevel {
+  GOOD
+  NEEDS_WORK
+  MISSING
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  university   String?
+  course       String?
+  semester     String?
+  gender       String?
+  createdAt    DateTime @default(now())
+
+  assignments Assignment[]
+}
+
+model Assignment {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  subject   String
+  question  String
+  pdfUrl    String?
+  dueDate   DateTime?
+  status    AssignmentStatus @default(NOT_STARTED)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  explain ExplainResult[]
+  plan    PlanResult[]
+  review  ReviewResult[]
+  viva    VivaResult[]
+
+  @@index([userId])
+}
+
+model ExplainResult {
+  id           String   @id @default(cuid())
+  assignmentId String
+  content      Json
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+}
+
+model PlanResult {
+  id           String   @id @default(cuid())
+  assignmentId String
+  content      Json
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+}
+
+model ReviewResult {
+  id               String      @id @default(cuid())
+  assignmentId     String
+  uploadedFileUrl  String?
+  grammarRating    RatingLevel
+  structureRating  RatingLevel
+  formattingRating RatingLevel
+  referencesRating RatingLevel
+  feedback         String
+  createdAt        DateTime    @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+}
+
+model VivaResult {
+  id           String   @id @default(cuid())
+  assignmentId String
+  content      Json
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+}
