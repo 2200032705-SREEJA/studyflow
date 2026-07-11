@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 
 interface Profile {
   name: string;
@@ -39,12 +37,12 @@ export default function ProfilePage() {
     setSaved(true);
   }
 
-  if (!profile) return <p className="text-sm text-ink/50 dark:text-paper/50">Loading…</p>;
+  if (!profile) return <p className="text-sm text-white/50">Loading…</p>;
 
   return (
     <div className="mx-auto max-w-lg">
-      <h1 className="font-display text-3xl text-ink dark:text-paper">Profile</h1>
-      <Card className="mt-6">
+      <h1 className="text-2xl font-semibold">Profile</h1>
+      <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <Field label="Name" value={profile.name} onChange={(v) => setProfile({ ...profile, name: v })} />
           <Field label="Email" value={profile.email} disabled onChange={() => {}} />
@@ -60,30 +58,37 @@ export default function ProfilePage() {
             onChange={(v) => setProfile({ ...profile, semester: v })}
           />
           <div>
-            <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">Gender (optional)</label>
+            <label className="mb-1.5 block text-xs font-medium text-white/60">Gender (optional)</label>
             <select
               value={profile.gender}
               onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-              className="w-full rounded-card border border-ink/15 dark:border-paper/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-violet-400/50"
             >
-              <option value="">Prefer not to say</option>
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="non-binary">Non-binary</option>
-              <option value="self-described">Self-described</option>
+              <option className="bg-[#0d0d14]" value="">Prefer not to say</option>
+              <option className="bg-[#0d0d14]" value="female">Female</option>
+              <option className="bg-[#0d0d14]" value="male">Male</option>
+              <option className="bg-[#0d0d14]" value="non-binary">Non-binary</option>
+              <option className="bg-[#0d0d14]" value="self-described">Self-described</option>
             </select>
           </div>
           <div className="flex items-center gap-3">
-            <Button type="submit" disabled={saving}>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-2.5 text-sm font-medium shadow-lg shadow-violet-900/40 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
               {saving ? "Saving…" : "Save changes"}
-            </Button>
-            {saved && <span className="text-xs text-pen-teal">Saved</span>}
+            </button>
+            {saved && <span className="text-xs text-emerald-300">Saved</span>}
           </div>
         </form>
-      </Card>
-      <Button variant="ghost" className="mt-4" onClick={() => signOut({ callbackUrl: "/" })}>
+      </div>
+      <button
+        onClick={() => signOut({ callbackUrl: "/" })}
+        className="mt-4 text-sm text-white/60 hover:text-white"
+      >
         Log out
-      </Button>
+      </button>
     </div>
   );
 }
@@ -101,12 +106,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-white/60">{label}</label>
       <input
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-card border border-ink/15 dark:border-paper/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber disabled:opacity-50"
+        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-violet-400/50 disabled:opacity-50"
       />
     </div>
   );

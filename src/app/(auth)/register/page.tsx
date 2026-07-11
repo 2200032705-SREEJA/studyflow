@@ -4,8 +4,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -55,16 +53,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-paper dark:bg-ink px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <span className="font-display text-2xl font-semibold text-ink dark:text-paper">StudyFlow</span>
-          <p className="mt-1 text-sm text-ink/60 dark:text-paper/60">
+    <main className="flex min-h-screen items-center justify-center bg-[#08070d] px-4 py-10 text-white">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 h-[500px] w-[900px] -translate-x-1/2 rounded-full bg-violet-700/20 blur-[120px]" />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-bold">
+            S
+          </span>
+          <span className="mt-3 text-xl font-semibold">StudyFlow</span>
+          <p className="mt-1 max-w-xs text-sm text-white/50">
             Understand, plan, and prepare — without the AI doing your assignment for you.
           </p>
         </div>
-        <Card className="p-7">
-          <h1 className="font-display text-2xl text-ink dark:text-paper">Create your account</h1>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-7 backdrop-blur-sm">
+          <h1 className="text-xl font-semibold">Create your account</h1>
           <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
             <Field label="Name" value={form.name} onChange={(v) => update("name", v)} required />
             <Field label="Username" value={form.username} onChange={(v) => update("username", v)} required />
@@ -77,30 +83,33 @@ export default function RegisterPage() {
               required
             />
             <div>
-              <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">
-                Gender (optional)
-              </label>
+              <label className="mb-1.5 block text-xs font-medium text-white/60">Gender (optional)</label>
               <select
                 value={form.gender}
                 onChange={(e) => update("gender", e.target.value)}
-                className="w-full rounded-card border border-ink/15 dark:border-paper/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-violet-400/50"
               >
-                <option value="">Prefer not to say</option>
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="non-binary">Non-binary</option>
-                <option value="self-described">Self-described</option>
+                <option className="bg-[#0d0d14]" value="">Prefer not to say</option>
+                <option className="bg-[#0d0d14]" value="female">Female</option>
+                <option className="bg-[#0d0d14]" value="male">Male</option>
+                <option className="bg-[#0d0d14]" value="non-binary">Non-binary</option>
+                <option className="bg-[#0d0d14]" value="self-described">Self-described</option>
               </select>
             </div>
-            {error && <p className="text-xs text-pen-rose">{error}</p>}
-            <Button type="submit" disabled={loading}>
+            {error && <p className="text-xs text-rose-400">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-2.5 text-sm font-medium shadow-lg shadow-violet-900/40 transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
               {loading ? "Creating account…" : "Create account"}
-            </Button>
+            </button>
           </form>
-        </Card>
-        <p className="mt-5 text-center text-xs text-ink/60 dark:text-paper/60">
+        </div>
+
+        <p className="mt-5 text-center text-xs text-white/50">
           Already have an account?{" "}
-          <Link href="/login" className="text-amber-dark dark:text-amber-light">
+          <Link href="/login" className="text-violet-300 hover:text-violet-200">
             Log in
           </Link>
         </p>
@@ -124,13 +133,13 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-white/60">{label}</label>
       <input
         type={type}
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-card border border-ink/15 dark:border-paper/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber"
+        className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white outline-none transition-colors focus:border-violet-400/50"
       />
     </div>
   );

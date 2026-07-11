@@ -2,46 +2,47 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LayoutDashboard, FilePlus2, FolderKanban, UserRound } from "lucide-react";
 import clsx from "@/lib/clsx";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/assignments/new", label: "New assignment" },
-  { href: "/workspace", label: "Workspace" },
-  { href: "/profile", label: "Profile" }
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/assignments/new", label: "New assignment", icon: FilePlus2 },
+  { href: "/workspace", label: "Workspace", icon: FolderKanban },
+  { href: "/profile", label: "Profile", icon: UserRound }
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex h-screen w-56 flex-col justify-between border-r border-ink/10 dark:border-paper/10 bg-paper-dim dark:bg-ink px-4 py-6">
-      <div>
-        <div className="mb-8 px-2">
-          <span className="font-display text-xl font-semibold text-ink dark:text-paper">StudyFlow</span>
-        </div>
-        <nav className="flex flex-col gap-1">
-          {links.map((link) => {
-            const active = pathname?.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={clsx(
-                  "rounded-card px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-amber/15 text-amber-dark dark:text-amber-light"
-                    : "text-ink/70 hover:bg-ink/5 dark:text-paper/70 dark:hover:bg-paper/10"
-                )}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </nav>
+    <aside className="flex h-screen w-60 flex-col border-r border-white/10 bg-[#0b0a11] px-4 py-6">
+      <div className="mb-8 flex items-center gap-2 px-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white">
+          S
+        </span>
+        <span className="text-lg font-semibold text-white">StudyFlow</span>
       </div>
-      <ThemeToggle />
+      <nav className="flex flex-col gap-1">
+        {links.map((link) => {
+          const active = pathname?.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={clsx(
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                active
+                  ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-200"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              )}
+            >
+              <link.icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
     </aside>
   );
 }

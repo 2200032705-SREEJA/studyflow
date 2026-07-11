@@ -2,9 +2,6 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
 
 export default async function WorkspaceHistoryPage() {
   const session = await getServerSession(authOptions);
@@ -23,37 +20,40 @@ export default async function WorkspaceHistoryPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl text-ink dark:text-paper">Workspace history</h1>
-      <p className="mt-1 text-ink/60 dark:text-paper/60">
+      <h1 className="text-2xl font-semibold">Workspace history</h1>
+      <p className="mt-1 text-sm text-white/50">
         Every stage is saved permanently — reopen any assignment to see it instantly, no regeneration needed.
       </p>
 
       <div className="mt-6 flex flex-col gap-3">
         {assignments.length === 0 ? (
-          <EmptyState
-            title="Nothing here yet"
-            description="Assignments you create will show their stage completion here."
-            action={
-              <Link href="/assignments/new">
-                <Button>Create an assignment</Button>
-              </Link>
-            }
-          />
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/15 px-6 py-14 text-center">
+            <h3 className="text-lg font-semibold">Nothing here yet</h3>
+            <p className="mt-1.5 max-w-sm text-sm text-white/50">
+              Assignments you create will show their stage completion here.
+            </p>
+            <Link
+              href="/assignments/new"
+              className="mt-4 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-2 text-sm font-medium shadow-lg shadow-violet-900/40 hover:opacity-90"
+            >
+              Create an assignment
+            </Link>
+          </div>
         ) : (
           assignments.map((a) => (
             <Link key={a.id} href={`/assignments/${a.id}`}>
-              <Card className="flex items-center justify-between hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:border-violet-400/30 hover:bg-white/[0.05]">
                 <div>
-                  <h3 className="font-display text-lg text-ink dark:text-paper">{a.title}</h3>
-                  <p className="text-sm text-ink/60 dark:text-paper/60">{a.subject}</p>
+                  <h3 className="text-base font-semibold">{a.title}</h3>
+                  <p className="text-sm text-white/50">{a.subject}</p>
                 </div>
-                <div className="flex gap-3 font-mono text-xs text-ink/60 dark:text-paper/60">
+                <div className="flex gap-3 text-xs text-white/50">
                   <StageMark label="Explain" done={a.explain.length > 0} />
                   <StageMark label="Plan" done={a.plan.length > 0} />
                   <StageMark label="Review" done={a.review.length > 0} />
                   <StageMark label="Viva" done={a.viva.length > 0} />
                 </div>
-              </Card>
+              </div>
             </Link>
           ))
         )}
@@ -64,7 +64,7 @@ export default async function WorkspaceHistoryPage() {
 
 function StageMark({ label, done }: { label: string; done: boolean }) {
   return (
-    <span className={done ? "text-pen-teal" : "text-ink/30 dark:text-paper/30"}>
+    <span className={done ? "text-emerald-300" : "text-white/30"}>
       {label} {done ? "✅" : "⬜"}
     </span>
   );
