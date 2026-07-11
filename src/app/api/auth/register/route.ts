@@ -15,26 +15,34 @@ const schema = z.object({
 });
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-  }
+  try {
+    const body = await req.json();
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    }
 
-  const { name, username, email, password, gender } = parsed.data;
+    const { name, username, email, password, gender } = parsed.data;
 
-  const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
-  if (existing) {
+    const existing = await prisma.user.findFirst({ where: { OR: [{ username }, { email }] } });
+    if (existing) {
+      return NextResponse.json(
+        { error: existing.username === username ? "That username is taken." : "An account with this email already exists." },
+        { status: 409 }
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: { name, username, email, passwordHash, gender }
+    });
+
+    return NextResponse.json({ id: user.id, username: user.username }, { status: 201 });
+  } catch (err) {
+    console.error("Register error:", err);
     return NextResponse.json(
-      { error: existing.username === username ? "That username is taken." : "An account with this email already exists." },
-      { status: 409 }
+      { error: "Something went wrong while creating your account. Please try again." },
+      { status: 500 }
     );
   }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: { name, username, email, passwordHash, gender }
-  });
-
-  return NextResponse.json({ id: user.id, username: user.username }, { status: 201 });
 }
