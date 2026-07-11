@@ -7,10 +7,11 @@ async function main() {
   const passwordHash = await bcrypt.hash("password123", 10);
 
   const user = await prisma.user.upsert({
-    where: { email: "demo@studyflow.app" },
+    where: { username: "demo" },
     update: {},
     create: {
       name: "Demo Student",
+      username: "demo",
       email: "demo@studyflow.app",
       passwordHash,
       university: "State University",
@@ -41,7 +42,7 @@ async function main() {
     }
   });
 
-  console.log("Seeded demo user: demo@studyflow.app / password123");
+  console.log("Seeded demo user: demo / password123");
 }
 
 main()

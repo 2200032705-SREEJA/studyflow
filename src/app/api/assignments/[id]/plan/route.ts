@@ -3,10 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { getOwnedAssignment } from "@/lib/getOwnedAssignment";
 import { generatePlan } from "@/lib/llm";
 import { isForwardStatus } from "@/lib/assignmentStatus";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const { assignment, status } = await getOwnedAssignment(params.id);
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status });
+
+  const limit = checkRateLimit(assignment.userId);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: `Daily generation limit reached (${limit.limit}/day). Try again later.` },
+      { status: 429 }
+    );
+  }
 
   try {
     const content = await generatePlan({

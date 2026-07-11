@@ -15,7 +15,21 @@ the work themselves. If asked to produce the assignment content itself, refuse i
 sentence and redirect to explaining or planning instead. Respond ONLY with valid JSON
 matching the requested shape — no markdown fences, no preamble.`;
 
-async function callLLM(prompt: string): Promise<string> {
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 500;
+
+// Errors worth retrying: transient network issues and 429/5xx from the provider.
+// A 400/401/403 (bad request, bad key, forbidden) will never succeed on retry.
+function isRetryable(status: number | undefined): boolean {
+  if (status === undefined) return true; // network-level failure (fetch threw)
+  return status === 429 || status >= 500;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callLLMOnce(prompt: string): Promise<string> {
   // Groq: free-tier, OpenAI-compatible chat completions endpoint.
   // Swap this block for Lamatic AgentKit, the Anthropic API, or any other
   // provider without touching the route handlers that call these functions.
@@ -45,7 +59,11 @@ async function callLLM(prompt: string): Promise<string> {
   });
 
   if (!res.ok) {
-    throw new Error(`LLM request failed: ${res.status} ${await res.text()}`);
+    const err = new Error(`LLM request failed: ${res.status} ${await res.text()}`) as Error & {
+      status?: number;
+    };
+    err.status = res.status;
+    throw err;
   }
 
   const data = await res.json();
@@ -53,9 +71,58 @@ async function callLLM(prompt: string): Promise<string> {
   return data.choices?.[0]?.message?.content ?? data.output ?? data.content?.[0]?.text ?? data.text ?? JSON.stringify(data);
 }
 
-function parseJSON<T>(raw: string): T {
+/**
+ * Wraps callLLMOnce with retry + exponential backoff. Only retries transient
+ * failures (network errors, 429 rate limits, 5xx) — never retries on a bad
+ * request or bad API key, since those fail identically every time.
+ */
+async function callLLM(prompt: string): Promise<string> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await callLLMOnce(prompt);
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number })?.status;
+      if (attempt === MAX_RETRIES || !isRetryable(status)) break;
+      // Exponential backoff with jitter: ~500ms, ~1000ms, ~2000ms.
+      const delay = BASE_BACKOFF_MS * 2 ** attempt + Math.random() * 100;
+      await sleep(delay);
+    }
+  }
+  throw lastErr;
+}
+
+/**
+ * Attempts to parse raw model output as JSON. If parsing fails, makes one
+ * follow-up call asking the model to repair its own broken JSON before
+ * giving up entirely — a small percentage of malformed responses compound
+ * into a lot of failed requests at volume, so this repair pass is cheap
+ * insurance against that.
+ */
+async function parseJSON<T>(raw: string): Promise<T> {
   const cleaned = raw.trim().replace(/^```json\s*|```$/g, "");
-  return JSON.parse(cleaned) as T;
+  try {
+    return JSON.parse(cleaned) as T;
+  } catch {
+    try {
+      const repairPrompt = `The following text was supposed to be valid JSON but failed to
+parse. Return ONLY the corrected, valid JSON with the same content and shape —
+no markdown fences, no commentary, no changes to the actual data.
+
+Broken text:
+${cleaned}`;
+      const repaired = await callLLM(repairPrompt);
+      const repairedCleaned = repaired.trim().replace(/^```json\s*|```$/g, "");
+      return JSON.parse(repairedCleaned) as T;
+    } catch (repairErr) {
+      throw new Error(
+        `LLM returned malformed JSON and the repair attempt also failed: ${
+          repairErr instanceof Error ? repairErr.message : String(repairErr)
+        }`
+      );
+    }
+  }
 }
 
 export interface ExplainContent {
@@ -118,7 +185,7 @@ Return JSON:
   "resources": [{"title": "...", "note": "specific and non-generic", "searchQuery": "exact search phrase, required, never blank"}]
 }`;
   const raw = await callLLM(prompt);
-  return parseJSON<ExplainContent>(raw);
+  return await parseJSON<ExplainContent>(raw);
 }
 
 export interface ElaborationContent {
@@ -150,7 +217,7 @@ Return JSON:
   "additionalExample": "a second, different example or scenario from the first one, showing the concept in a different context"
 }`;
   const raw = await callLLM(prompt);
-  return parseJSON<ElaborationContent>(raw);
+  return await parseJSON<ElaborationContent>(raw);
 }
 
 export interface PlanContent {
@@ -206,7 +273,7 @@ Return JSON:
 }
 If no due date is set, build the timeline using relative day labels instead of dates.`;
   const raw = await callLLM(prompt);
-  return parseJSON<PlanContent>(raw);
+  return await parseJSON<PlanContent>(raw);
 }
 
 export type Rating = "GOOD" | "NEEDS_WORK" | "MISSING";
@@ -246,7 +313,7 @@ Return JSON:
   "feedback": "specific written feedback and concrete suggestions, 3-6 sentences"
 }`;
   const raw = await callLLM(prompt);
-  return parseJSON<ReviewContent>(raw);
+  return await parseJSON<ReviewContent>(raw);
 }
 
 export interface VivaContent {
@@ -286,5 +353,5 @@ Return JSON:
   "keyConcepts": ["concept the student should be able to explain unprompted", ...]
 }`;
   const raw = await callLLM(prompt);
-  return parseJSON<VivaContent>(raw);
+  return await parseJSON<VivaContent>(raw);
 }

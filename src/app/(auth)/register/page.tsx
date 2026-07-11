@@ -11,11 +11,9 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
-    university: "",
-    course: "",
-    semester: "",
     gender: ""
   });
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +42,7 @@ export default function RegisterPage() {
     }
 
     const signInRes = await signIn("credentials", {
-      email: form.email,
+      username: form.username,
       password: form.password,
       redirect: false
     });
@@ -58,24 +56,26 @@ export default function RegisterPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-paper dark:bg-ink px-4 py-10">
-      <Card className="w-full max-w-md">
-        <h1 className="font-display text-2xl text-ink dark:text-paper">Create your account</h1>
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <Field label="Name" value={form.name} onChange={(v) => update("name", v)} required />
-          <Field label="Email" type="email" value={form.email} onChange={(v) => update("email", v)} required />
-          <Field
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(v) => update("password", v)}
-            required
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="University (optional)" value={form.university} onChange={(v) => update("university", v)} />
-            <Field label="Course (optional)" value={form.course} onChange={(v) => update("course", v)} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Semester (optional)" value={form.semester} onChange={(v) => update("semester", v)} />
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <span className="font-display text-2xl font-semibold text-ink dark:text-paper">StudyFlow</span>
+          <p className="mt-1 text-sm text-ink/60 dark:text-paper/60">
+            Understand, plan, and prepare — without the AI doing your assignment for you.
+          </p>
+        </div>
+        <Card className="p-7">
+          <h1 className="font-display text-2xl text-ink dark:text-paper">Create your account</h1>
+          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+            <Field label="Name" value={form.name} onChange={(v) => update("name", v)} required />
+            <Field label="Username" value={form.username} onChange={(v) => update("username", v)} required />
+            <Field label="Email" type="email" value={form.email} onChange={(v) => update("email", v)} required />
+            <Field
+              label="Password"
+              type="password"
+              value={form.password}
+              onChange={(v) => update("password", v)}
+              required
+            />
             <div>
               <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">
                 Gender (optional)
@@ -92,19 +92,19 @@ export default function RegisterPage() {
                 <option value="self-described">Self-described</option>
               </select>
             </div>
-          </div>
-          {error && <p className="text-xs text-pen-rose">{error}</p>}
-          <Button type="submit" disabled={loading}>
-            {loading ? "Creating account…" : "Create account"}
-          </Button>
-        </form>
-        <p className="mt-4 text-center text-xs text-ink/60 dark:text-paper/60">
+            {error && <p className="text-xs text-pen-rose">{error}</p>}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating account…" : "Create account"}
+            </Button>
+          </form>
+        </Card>
+        <p className="mt-5 text-center text-xs text-ink/60 dark:text-paper/60">
           Already have an account?{" "}
           <Link href="/login" className="text-amber-dark dark:text-amber-light">
             Log in
           </Link>
         </p>
-      </Card>
+      </div>
     </main>
   );
 }

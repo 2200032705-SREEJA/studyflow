@@ -4,15 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { FileUpload } from "@/components/ui/FileUpload";
 
 export default function NewAssignmentPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [question, setQuestion] = useState("");
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +21,7 @@ export default function NewAssignmentPage() {
     const res = await fetch("/api/assignments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, subject, question, dueDate: dueDate || null, pdfUrl })
+      body: JSON.stringify({ title, subject, question })
     });
 
     if (!res.ok) {
@@ -49,7 +46,6 @@ export default function NewAssignmentPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <LabeledInput label="Title" value={title} onChange={setTitle} required />
           <LabeledInput label="Subject" value={subject} onChange={setSubject} required />
-          <LabeledInput label="Due date (optional)" type="date" value={dueDate} onChange={setDueDate} />
           <div>
             <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">Assignment question</label>
             <textarea
@@ -59,12 +55,6 @@ export default function NewAssignmentPage() {
               onChange={(e) => setQuestion(e.target.value)}
               className="w-full rounded-card border border-ink/15 dark:border-paper/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-amber"
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-mono text-ink/60 dark:text-paper/60">
-              Upload PDF (optional)
-            </label>
-            <FileUpload onUploaded={(f) => setPdfUrl(f.url)} />
           </div>
           {error && <p className="text-xs text-pen-rose">{error}</p>}
           <Button type="submit" disabled={loading}>

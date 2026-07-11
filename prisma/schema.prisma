@@ -24,6 +24,7 @@ enum RatingLevel {
 model User {
   id           String   @id @default(cuid())
   name         String
+  username     String   @unique
   email        String   @unique
   passwordHash String
   university   String?

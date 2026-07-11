@@ -38,6 +38,7 @@ export function WorkspaceClient({
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(assignment.status);
+  const [dueDate, setDueDate] = useState(assignment.dueDate ? assignment.dueDate.slice(0, 10) : "");
 
   async function updateStatus(next: string) {
     setStatus(next);
@@ -49,15 +50,34 @@ export function WorkspaceClient({
     router.refresh();
   }
 
+  async function updateDueDate(next: string) {
+    setDueDate(next);
+    await fetch(`/api/assignments/${assignment.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dueDate: next || null })
+    });
+    router.refresh();
+  }
+
   return (
     <div>
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-display text-3xl text-ink dark:text-paper">{assignment.title}</h1>
-          <p className="mt-1 text-ink/60 dark:text-paper/60">
-            {assignment.subject}
-            {assignment.dueDate ? ` · Due ${new Date(assignment.dueDate).toLocaleDateString()}` : ""}
-          </p>
+          <div className="mt-1 flex items-center gap-2 text-ink/60 dark:text-paper/60">
+            <span>{assignment.subject}</span>
+            <span>·</span>
+            <label className="flex items-center gap-1.5 text-xs font-mono">
+              Due
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => updateDueDate(e.target.value)}
+                className="rounded border border-ink/15 dark:border-paper/20 bg-transparent px-1.5 py-0.5 text-xs outline-none focus:border-amber"
+              />
+            </label>
+          </div>
         </div>
         <select
           value={status}

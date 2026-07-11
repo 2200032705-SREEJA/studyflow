@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getOwnedAssignment } from "@/lib/getOwnedAssignment";
 import { generateReview } from "@/lib/llm";
 import { isForwardStatus } from "@/lib/assignmentStatus";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Accepts the draft as plain text plus an optional already-uploaded file URL
 // (upload the file first via POST /api/upload, then send its URL + extracted
@@ -18,6 +19,14 @@ const schema = z.object({
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { assignment, status } = await getOwnedAssignment(params.id);
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status });
+
+  const limit = checkRateLimit(assignment.userId);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: `Daily generation limit reached (${limit.limit}/day). Try again later.` },
+      { status: 429 }
+    );
+  }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);

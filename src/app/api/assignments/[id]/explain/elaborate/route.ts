@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getOwnedAssignment } from "@/lib/getOwnedAssignment";
 import { generateElaboration } from "@/lib/llm";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const schema = z.object({
   concept: z.string().min(1),
@@ -13,6 +14,17 @@ const schema = z.object({
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const { assignment, status } = await getOwnedAssignment(params.id);
   if (!assignment) return NextResponse.json({ error: "Not found" }, { status });
+
+  // This route is a repeatable button click (student can hit "explain more"
+  // over and over), which makes it the easiest route to abuse in a tight
+  // loop — so it shares the same per-user cap as the main generation routes.
+  const limit = checkRateLimit(assignment.userId);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: `Daily generation limit reached (${limit.limit}/day). Try again later.` },
+      { status: 429 }
+    );
+  }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
