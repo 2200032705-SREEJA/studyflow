@@ -4,14 +4,31 @@ import { getOwnedAssignment } from "@/lib/getOwnedAssignment";
 import { generateExplain } from "@/lib/llm";
 import { checkRateLimit } from "@/lib/rateLimit";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
-  const { assignment, status } = await getOwnedAssignment(params.id);
-  if (!assignment) return NextResponse.json({ error: "Not found" }, { status });
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export async function POST(
+  _req: Request,
+  { params }: RouteContext
+) {
+  const { id } = await params;
+
+  const { assignment, status } = await getOwnedAssignment(id);
+
+  if (!assignment) {
+    return NextResponse.json({ error: "Not found" }, { status });
+  }
 
   const limit = checkRateLimit(assignment.userId);
+
   if (!limit.allowed) {
     return NextResponse.json(
-      { error: `Daily generation limit reached (${limit.limit}/day). Try again later.` },
+      {
+        error: `Daily generation limit reached (${limit.limit}/day). Try again later.`,
+      },
       { status: 429 }
     );
   }
@@ -20,17 +37,25 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     const content = await generateExplain({
       title: assignment.title,
       subject: assignment.subject,
-      question: assignment.question
+      question: assignment.question,
     });
 
     const result = await prisma.explainResult.create({
-      data: { assignmentId: assignment.id, content }
+      data: {
+        assignmentId: assignment.id,
+        content,
+      },
     });
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to generate explanation." },
+      {
+        error:
+          err instanceof Error
+            ? err.message
+            : "Failed to generate explanation.",
+      },
       { status: 502 }
     );
   }
