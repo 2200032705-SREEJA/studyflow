@@ -61,6 +61,7 @@ model ExplainResult {
   id           String   @id @default(cuid())
   assignmentId String
   content      Json
+  depth        String   @default("standard")
   createdAt    DateTime @default(now())
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)

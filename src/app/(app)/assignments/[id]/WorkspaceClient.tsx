@@ -31,7 +31,7 @@ export function WorkspaceClient({
   initialViva
 }: {
   assignment: Assignment;
-  initialExplain: { content: any } | null;
+  initialExplain: { content: any; depth?: string } | null;
   initialPlan: { content: any } | null;
   initialReview: any | null;
   initialViva: { content: any } | null;
@@ -139,15 +139,28 @@ function GenerateBar({
   );
 }
 
-function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: { content: any } | null }) {
+const EXPLAIN_DEPTH_OPTIONS: { value: "quick" | "standard" | "deep-dive"; label: string }[] = [
+  { value: "quick", label: "Quick" },
+  { value: "standard", label: "Standard" },
+  { value: "deep-dive", label: "Deep Dive" },
+];
+
+function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: { content: any; depth?: string } | null }) {
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [depth, setDepth] = useState<"quick" | "standard" | "deep-dive">(
+    (initial?.depth as "quick" | "standard" | "deep-dive") ?? "standard"
+  );
 
   async function generate() {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/assignments/${assignment.id}/explain`, { method: "POST" });
+    const res = await fetch(`/api/assignments/${assignment.id}/explain`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ depth }),
+    });
     setLoading(false);
     if (!res.ok) return setError((await res.json()).error ?? "Failed to generate.");
     setData(await res.json());
@@ -155,6 +168,26 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-xs uppercase tracking-wide text-ink/50 dark:text-paper/50">Depth</span>
+        <div className="flex gap-1">
+          {EXPLAIN_DEPTH_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setDepth(opt.value)}
+              disabled={loading}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition disabled:opacity-50 ${
+                depth === opt.value
+                  ? "bg-amber text-ink dark:bg-amber-light"
+                  : "bg-ink/5 text-ink/60 hover:bg-ink/10 dark:bg-paper/10 dark:text-paper/60 dark:hover:bg-paper/20"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <GenerateBar hasResult={!!data} loading={loading} onGenerate={generate} emptyLabel="No explanation yet — generate one to see what your teacher is really asking." />
       {error && <p className="text-xs text-pen-rose">{error}</p>}
       {data && !loading && (

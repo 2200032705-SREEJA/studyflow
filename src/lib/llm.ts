@@ -132,11 +132,62 @@ export interface ExplainContent {
   resources: { title: string; note: string; searchQuery: string }[];
 }
 
+/**
+ * How in-depth the explanation should be. Chosen by the student before
+ * generating, and shown in the UI as "Quick" / "Standard" / "Deep Dive".
+ */
+export type ExplainDepth = "quick" | "standard" | "deep-dive";
+
+const EXPLAIN_DEPTH_SPEC: Record<
+  ExplainDepth,
+  {
+    whatIsAsked: string;
+    conceptCount: string;
+    conceptExplanation: string;
+    mistakeCount: string;
+    diagramRule: string;
+  }
+> = {
+  quick: {
+    whatIsAsked: "1-2 sentences — the single core thing the teacher wants, no elaboration.",
+    conceptCount: "pick only the 2-3 concepts that are absolutely essential to THIS assignment",
+    conceptExplanation:
+      "1 sentence, plain and direct — enough to name and place the concept, not to fully teach it",
+    mistakeCount: "2 mistakes",
+    diagramRule:
+      "Only include a \"diagram\" for the single concept that benefits most from one; leave the rest as an empty string \"\". Keep any diagram under ~5 nodes/lines.",
+  },
+  standard: {
+    whatIsAsked:
+      "3-5 sentences breaking down exactly what the teacher wants, referencing specific phrases or requirements from the assignment question, and naming what a strong answer would need to include.",
+    conceptCount: "pick 4-6 concepts truly central to THIS assignment (not a generic list for the subject)",
+    conceptExplanation: "2-3 sentences, precise, not a dictionary definition",
+    mistakeCount: "3-4 mistakes",
+    diagramRule:
+      "AT LEAST HALF of the concepts (round up) MUST include a real, valid Mermaid diagram — diagrams are a core part of this feature, do not skip them by default. Only leave \"diagram\" as an empty string \"\" for concepts that are genuinely a single flat idea with no relationships, hierarchy, or steps to show. Keep any diagram small (under ~8 nodes/lines).",
+  },
+  "deep-dive": {
+    whatIsAsked:
+      "6-9 sentences giving a thorough breakdown of exactly what the teacher wants — cover every requirement and sub-requirement in the question, what a strong vs. weak answer would each look like, and any nuance a student could easily miss.",
+    conceptCount:
+      "pick 6-9 concepts central to THIS assignment, including secondary or supporting concepts a standard pass would skip",
+    conceptExplanation:
+      "4-6 sentences going into real depth — cover the 'why' behind the concept, common edge cases, and how it connects to the other concepts in this list, not just a definition",
+    mistakeCount: "5-6 mistakes, including subtler ones that only show up once a student is fairly far into the work",
+    diagramRule:
+      "EVERY concept MUST include a real, valid Mermaid diagram unless it is genuinely a single flat idea with no relationships, hierarchy, or steps to show — in deep-dive mode diagrams should be the default, not the exception. Diagrams can be larger here (under ~12 nodes/lines) to capture more nuance.",
+  },
+};
+
 export async function generateExplain(input: {
   title: string;
   subject: string;
   question: string;
+  depth?: ExplainDepth;
 }): Promise<ExplainContent> {
+  const depth = input.depth ?? "standard";
+  const spec = EXPLAIN_DEPTH_SPEC[depth];
+
   const prompt = `Explain this assignment to a student so they deeply understand it —
 do not write any part of the assignment itself.
 
@@ -144,31 +195,26 @@ Title: ${input.title}
 Subject: ${input.subject}
 Assignment question: ${input.question}
 
+The student picked the "${depth}" depth level for this explanation. Calibrate the
+length and thoroughness of every section to that level, per the instructions below.
+
 Be specific and substantive, not generic. Ground everything in the actual wording of
 the assignment question above rather than giving a textbook-overview answer that
 would apply to any assignment on this topic. Avoid vague filler like "provides a
 comprehensive overview" — every sentence should teach something concrete.
 
-For "whatIsAsked": 3-5 sentences breaking down exactly what the teacher wants,
-referencing specific phrases or requirements from the assignment question, and
-naming what a strong answer would need to include.
+For "whatIsAsked": ${spec.whatIsAsked}
 
-For "keyConcepts": pick 4-6 concepts truly central to THIS assignment (not a generic
-list for the subject). For each, give a clear explanation in your own words (2-3
-sentences, precise, not a dictionary definition) AND a concrete example — a short
-code snippet, worked scenario, or applied case — that makes the concept click.
-Also give a "diagram" in Mermaid syntax (classDiagram for class/inheritance
-relationships, flowchart for processes, sequenceDiagram for interactions over
-time). AT LEAST HALF of the concepts (round up) MUST include a real, valid Mermaid
-diagram — diagrams are a core part of this feature, do not skip them by default.
-Only leave "diagram" as an empty string "" for concepts that are genuinely a single
-flat idea with no relationships, hierarchy, or steps to show (e.g. a naming
-convention). When in doubt, include a diagram. Keep any diagram small (under ~8
-nodes/lines) and valid Mermaid syntax — no markdown fences around it.
+For "keyConcepts": ${spec.conceptCount}. For each, give a clear explanation in your
+own words (${spec.conceptExplanation}) AND a concrete example — a short code
+snippet, worked scenario, or applied case — that makes the concept click. Also give
+a "diagram" in Mermaid syntax (classDiagram for class/inheritance relationships,
+flowchart for processes, sequenceDiagram for interactions over time). ${spec.diagramRule}
+Valid Mermaid syntax only — no markdown fences around it.
 
-For "commonMistakes": 3-4 mistakes specific to this kind of assignment. For each,
-explain why students tend to make it (the misconception behind it) and one concrete
-way to avoid it — not just a restatement of the mistake.
+For "commonMistakes": ${spec.mistakeCount} specific to this kind of assignment. For
+each, explain why students tend to make it (the misconception behind it) and one
+concrete way to avoid it — not just a restatement of the mistake.
 
 For "resources": exactly 3 resources. Every single one MUST include a non-empty
 "searchQuery" — this field is required, never omit it or leave it blank. The note
