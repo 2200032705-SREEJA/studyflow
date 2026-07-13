@@ -43,7 +43,7 @@ export async function POST(
     const result = await prisma.explainResult.create({
       data: {
         assignmentId: assignment.id,
-        content; content as any,
+        content: content as any,
       },
     });
 
