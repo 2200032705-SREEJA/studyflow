@@ -29,7 +29,7 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function callLLMOnce(prompt: string): Promise<string> {
+async function callLLMOnce(prompt: string, maxTokens: number = 4096): Promise<string> {
   // Groq: free-tier, OpenAI-compatible chat completions endpoint.
   // Swap this block for Lamatic AgentKit, the Anthropic API, or any other
   // provider without touching the route handlers that call these functions.
@@ -54,7 +54,11 @@ async function callLLMOnce(prompt: string): Promise<string> {
         { role: "system", content: GUARDRAIL },
         { role: "user", content: prompt }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      // Without this, Groq falls back to a small default and long responses
+      // (Standard/Deep Dive explanations with diagrams + images) get cut off
+      // mid-JSON, which then silently collapses through the repair step below.
+      max_tokens: maxTokens
     })
   });
 
@@ -76,11 +80,11 @@ async function callLLMOnce(prompt: string): Promise<string> {
  * failures (network errors, 429 rate limits, 5xx) — never retries on a bad
  * request or bad API key, since those fail identically every time.
  */
-async function callLLM(prompt: string): Promise<string> {
+async function callLLM(prompt: string, maxTokens: number = 4096): Promise<string> {
   let lastErr: unknown;
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      return await callLLMOnce(prompt);
+      return await callLLMOnce(prompt, maxTokens);
     } catch (err) {
       lastErr = err;
       const status = (err as { status?: number })?.status;
@@ -100,7 +104,7 @@ async function callLLM(prompt: string): Promise<string> {
  * into a lot of failed requests at volume, so this repair pass is cheap
  * insurance against that.
  */
-async function parseJSON<T>(raw: string): Promise<T> {
+async function parseJSON<T>(raw: string, maxTokens: number = 4096): Promise<T> {
   const cleaned = raw.trim().replace(/^```json\s*|```$/g, "");
   try {
     return JSON.parse(cleaned) as T;
@@ -112,7 +116,7 @@ no markdown fences, no commentary, no changes to the actual data.
 
 Broken text:
 ${cleaned}`;
-      const repaired = await callLLM(repairPrompt);
+      const repaired = await callLLM(repairPrompt, maxTokens);
       const repairedCleaned = repaired.trim().replace(/^```json\s*|```$/g, "");
       return JSON.parse(repairedCleaned) as T;
     } catch (repairErr) {
@@ -215,6 +219,16 @@ standard: {
   resourceRule:
   "Return exactly 8 resources: 4 YouTube video search queries and 4 articles (GeeksforGeeks, MDN, Microsoft Learn, Oracle Docs, official documentation or research papers). Every resource MUST include title, note, searchQuery and type.",
 },
+};
+
+// Rough token budgets per depth. Deep Dive asks for 6-9 concepts, each with a
+// multi-paragraph explanation, two examples, an analogy, a Mermaid diagram, two
+// images, interview questions, etc. — that easily runs past a small default
+// max_tokens, which is what was causing responses to get cut off mid-JSON.
+const EXPLAIN_MAX_TOKENS: Record<ExplainDepth, number> = {
+  quick: 1500,
+  standard: 4000,
+  "deep-dive": 8000,
 };
 
 export async function generateExplain(input: {
@@ -400,8 +414,9 @@ Return JSON:
     "type": "article or video"
   }]
 }`;
-  const raw = await callLLM(prompt);
-  return await parseJSON<ExplainContent>(raw);
+  const maxTokens = EXPLAIN_MAX_TOKENS[depth];
+  const raw = await callLLM(prompt, maxTokens);
+  return await parseJSON<ExplainContent>(raw, maxTokens);
 }
 
 export interface ElaborationContent {

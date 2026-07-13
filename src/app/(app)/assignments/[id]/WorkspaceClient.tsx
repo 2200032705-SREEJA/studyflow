@@ -153,17 +153,27 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
     (initial?.depth as "quick" | "standard" | "deep-dive") ?? "standard"
   );
 
-  async function generate() {
+  async function generate(depthOverride?: "quick" | "standard" | "deep-dive") {
+    const requestDepth = depthOverride ?? depth;
     setLoading(true);
     setError(null);
     const res = await fetch(`/api/assignments/${assignment.id}/explain`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ depth }),
+      body: JSON.stringify({ depth: requestDepth }),
     });
     setLoading(false);
     if (!res.ok) return setError((await res.json()).error ?? "Failed to generate.");
     setData(await res.json());
+  }
+
+  function selectDepth(value: "quick" | "standard" | "deep-dive") {
+    setDepth(value);
+    // Auto-regenerate for the newly selected depth instead of just switching
+    // the highlighted button while leaving the old depth's content on screen.
+    // Pass the value directly rather than relying on `depth` state, since
+    // setDepth() hasn't re-rendered yet at this point.
+    generate(value);
   }
 
   return (
@@ -175,7 +185,7 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
             <button
               key={opt.value}
               type="button"
-              onClick={() => setDepth(opt.value)}
+              onClick={() => selectDepth(opt.value)}
               disabled={loading}
               className={`rounded px-2.5 py-1 text-xs font-medium transition disabled:opacity-50 ${
                 depth === opt.value
@@ -188,7 +198,7 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
           ))}
         </div>
       </div>
-      <GenerateBar hasResult={!!data} loading={loading} onGenerate={generate} emptyLabel="No explanation yet — generate one to see what your teacher is really asking." />
+      <GenerateBar hasResult={!!data} loading={loading} onGenerate={() => generate()} emptyLabel="No explanation yet — generate one to see what your teacher is really asking." />
       {error && <p className="text-xs text-pen-rose">{error}</p>}
       {data && !loading && (
         <div className="flex flex-col gap-5">
@@ -252,7 +262,7 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
           </Section>
           )}
           <div className="flex justify-end">
-            <Button variant="ghost" onClick={generate}>
+            <Button variant="ghost" onClick={() => generate()}>
               ↻ Regenerate
             </Button>
           </div>
@@ -564,4 +574,4 @@ function RatingCard({ label, rating }: { label: string; rating: "GOOD" | "NEEDS_
       <RatingBadge rating={rating} />
     </Card>
   );
-}
+} 
