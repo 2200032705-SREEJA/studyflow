@@ -6,29 +6,47 @@ import { checkRateLimit } from "@/lib/rateLimit";
 
 const schema = z.object({
   concept: z.string().min(1),
-  currentExplanation: z.string().min(1)
+  currentExplanation: z.string().min(1),
 });
+
+type RouteContext = {
+  params: Promise<{
+    id: string;
+  }>;
+};
 
 // Generated on demand (not persisted) so a student only pays for the depth they
 // actually ask for, instead of every concept being fully expanded up front.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const { assignment, status } = await getOwnedAssignment(params.id);
-  if (!assignment) return NextResponse.json({ error: "Not found" }, { status });
+export async function POST(
+  req: Request,
+  { params }: RouteContext
+) {
+  const { id } = await params;
 
-  // This route is a repeatable button click (student can hit "explain more"
-  // over and over), which makes it the easiest route to abuse in a tight
-  // loop — so it shares the same per-user cap as the main generation routes.
+  const { assignment, status } = await getOwnedAssignment(id);
+  if (!assignment) {
+    return NextResponse.json({ error: "Not found" }, { status });
+  }
+
   const limit = checkRateLimit(assignment.userId);
   if (!limit.allowed) {
     return NextResponse.json(
-      { error: `Daily generation limit reached (${limit.limit}/day). Try again later.` },
+      {
+        error: `Daily generation limit reached (${limit.limit}/day). Try again later.`,
+      },
       { status: 429 }
     );
   }
 
   const body = await req.json();
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
 
   try {
     const content = await generateElaboration({
@@ -36,12 +54,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       subject: assignment.subject,
       question: assignment.question,
       concept: parsed.data.concept,
-      currentExplanation: parsed.data.currentExplanation
+      currentExplanation: parsed.data.currentExplanation,
     });
-    return NextResponse.json(content, { status: 200 });
+
+    return NextResponse.json(content);
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to elaborate." },
+      {
+        error: err instanceof Error ? err.message : "Failed to elaborate.",
+      },
       { status: 502 }
     );
   }
