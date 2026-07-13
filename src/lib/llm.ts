@@ -127,11 +127,29 @@ ${cleaned}`;
 
 export interface ExplainContent {
   whatIsAsked: string;
-  keyConcepts: { name: string; explanation: string; example: string; diagram: string }[];
-  commonMistakes: { mistake: string; whyItHappens: string; howToAvoid: string }[];
-  resources: { title: string; note: string; searchQuery: string }[];
-}
+  keyConcepts: {
+  name: string;
+  explanation: string;
+  example: string;
+  diagram: string;
+  images: {
+    title: string;
+    searchQuery: string;
+  }[];
+}[];
+commonMistakes: {
+  mistake: string;
+  whyItHappens: string;
+  howToAvoid: string;
+}[];
 
+resources: {
+  title: string;
+  note: string;
+  searchQuery: string;
+  type: "article" | "video";
+}[];
+}
 /**
  * How in-depth the explanation should be. Chosen by the student before
  * generating, and shown in the UI as "Quick" / "Standard" / "Deep Dive".
@@ -146,37 +164,57 @@ const EXPLAIN_DEPTH_SPEC: Record<
     conceptExplanation: string;
     mistakeCount: string;
     diagramRule: string;
+    resourceRule: string;
   }
 > = {
-  quick: {
-    whatIsAsked: "1-2 sentences — the single core thing the teacher wants, no elaboration.",
-    conceptCount: "pick only the 2-3 concepts that are absolutely essential to THIS assignment",
-    conceptExplanation:
-      "1 sentence, plain and direct — enough to name and place the concept, not to fully teach it",
-    mistakeCount: "2 mistakes",
-    diagramRule:
-      "Only include a \"diagram\" for the single concept that benefits most from one; leave the rest as an empty string \"\". Keep any diagram under ~5 nodes/lines.",
-  },
-  standard: {
-    whatIsAsked:
-      "3-5 sentences breaking down exactly what the teacher wants, referencing specific phrases or requirements from the assignment question, and naming what a strong answer would need to include.",
-    conceptCount: "pick 4-6 concepts truly central to THIS assignment (not a generic list for the subject)",
-    conceptExplanation: "2-3 sentences, precise, not a dictionary definition",
-    mistakeCount: "3-4 mistakes",
-    diagramRule:
-      "AT LEAST HALF of the concepts (round up) MUST include a real, valid Mermaid diagram — diagrams are a core part of this feature, do not skip them by default. Only leave \"diagram\" as an empty string \"\" for concepts that are genuinely a single flat idea with no relationships, hierarchy, or steps to show. Keep any diagram small (under ~8 nodes/lines).",
-  },
-  "deep-dive": {
-    whatIsAsked:
-      "6-9 sentences giving a thorough breakdown of exactly what the teacher wants — cover every requirement and sub-requirement in the question, what a strong vs. weak answer would each look like, and any nuance a student could easily miss.",
-    conceptCount:
-      "pick 6-9 concepts central to THIS assignment, including secondary or supporting concepts a standard pass would skip",
-    conceptExplanation:
-      "4-6 sentences going into real depth — cover the 'why' behind the concept, common edge cases, and how it connects to the other concepts in this list, not just a definition",
-    mistakeCount: "5-6 mistakes, including subtler ones that only show up once a student is fairly far into the work",
-    diagramRule:
-      "EVERY concept MUST include a real, valid Mermaid diagram unless it is genuinely a single flat idea with no relationships, hierarchy, or steps to show — in deep-dive mode diagrams should be the default, not the exception. Diagrams can be larger here (under ~12 nodes/lines) to capture more nuance.",
-  },
+quick: {
+  whatIsAsked:
+    "Summarize the assignment in 1-2 short sentences. Focus only on what the teacher expects.",
+
+  conceptCount:
+    "Choose ONLY the 2-3 most important concepts required to understand this assignment.",
+
+  conceptExplanation:
+    "Maximum 2 short sentences. Keep the explanation simple enough for a beginner.",
+
+  mistakeCount:
+    "Exactly 2 common mistakes.",
+
+  diagramRule:
+    'Never include diagrams. The "diagram" field MUST always be an empty string "".',
+
+  resourceRule:
+    'Return an empty array [] for "resources". Do not include YouTube, articles, or image suggestions.',
+},
+standard: {
+  whatIsAsked:
+    "3-5 sentences breaking down exactly what the teacher wants, referencing specific phrases or requirements from the assignment question, and naming what a strong answer would need to include.",
+  conceptCount:
+    "pick 4-6 concepts truly central to THIS assignment (not a generic list for the subject)",
+  conceptExplanation:
+    "2-3 sentences, precise, not a dictionary definition",
+  mistakeCount:
+    "3-4 mistakes",
+  diagramRule:
+    "AT LEAST HALF of the concepts (round up) MUST include a real, valid Mermaid diagram.",
+ resourceRule:
+  "Return exactly 4 resources: 2 articles (prefer GeeksforGeeks, MDN, Microsoft Learn, Oracle Docs or official documentation) and 2 YouTube video search queries. Every resource MUST include title, note, searchQuery and type.",
+},
+
+"deep-dive": {
+  whatIsAsked:
+    "2-3 sentences stating the core objective of the assignment.",
+  conceptCount:
+    "pick 6-9 concepts central to THIS assignment",
+  conceptExplanation:
+    "2-3 sentences with deeper insight and practical understanding",
+  mistakeCount:
+    "3-4 mistakes",
+  diagramRule:
+    "EVERY concept MUST include a Mermaid diagram.",
+  resourceRule:
+  "Return exactly 8 resources: 4 YouTube video search queries and 4 articles (GeeksforGeeks, MDN, Microsoft Learn, Oracle Docs, official documentation or research papers). Every resource MUST include title, note, searchQuery and type.",
+},
 };
 
 export async function generateExplain(input: {
@@ -197,6 +235,44 @@ Assignment question: ${input.question}
 
 The student picked the "${depth}" depth level for this explanation. Calibrate the
 length and thoroughness of every section to that level, per the instructions below.
+IMPORTANT:
+
+The three explanation modes MUST feel completely different.
+
+Quick:
+- 2-minute read.
+- Only 2-3 concepts.
+- Very short explanations.
+- No diagrams.
+- No external resources.
+- No image suggestions.
+
+Standard:
+- 5-7 minute read.
+- 4-6 concepts.
+- More detailed explanations.
+- One practical example per concept.
+- Mermaid diagrams for most concepts.
+- Educational image suggestions.
+- YouTube search suggestions.
+- Article suggestions.
+
+Deep Dive:
+- 15–20 minute study guide.
+- 6–9 concepts.
+- Every concept must have a detailed explanation (minimum 2–3 paragraphs).
+- At least 2 different examples per concept.
+- Real-world analogy for every concept.
+- Mermaid diagram for every concept.
+- 2 educational image suggestions per concept.
+- Include comparison tables whenever useful.
+- Include "When should this be used?" for every concept.
+- Include "Common interview questions" for every concept.
+- Include "Common mistakes" specific to each concept.
+- Return 4 YouTube search queries.
+- Return 4 article search queries (GeeksforGeeks, MDN, Microsoft Learn, Oracle Docs, official docs).
+- End with a "Further Reading" section containing advanced topics related to the assignment.
+Never make the outputs look similar. Each level should feel like a different product.
 
 Be specific and substantive, not generic. Ground everything in the actual wording of
 the assignment question above rather than giving a textbook-overview answer that
@@ -206,29 +282,123 @@ comprehensive overview" — every sentence should teach something concrete.
 For "whatIsAsked": ${spec.whatIsAsked}
 
 For "keyConcepts": ${spec.conceptCount}. For each, give a clear explanation in your
-own words (${spec.conceptExplanation}) AND a concrete example — a short code
-snippet, worked scenario, or applied case — that makes the concept click. Also give
+own words (${spec.conceptExplanation}) AND a concrete example that is directly related to the assignment question.
+
+Choose the example automatically based on the subject.
+
+Examples:
+- DBMS → SQL query, ER diagram scenario, normalization example.
+- Java → Java code snippet.
+- React → React component example.
+- Operating Systems → Process scheduling example.
+- Computer Networks → TCP/IP communication example.
+- Data Structures → Binary Tree, Linked List or Graph example.
+- Machine Learning → Dataset or model example.
+- Cybersecurity → Encryption or attack scenario.
+
+Never use generic examples. Every example must match the assignment topic and help the student understand the concept.
+Also give
 a "diagram" in Mermaid syntax (classDiagram for class/inheritance relationships,
 flowchart for processes, sequenceDiagram for interactions over time). ${spec.diagramRule}
 Valid Mermaid syntax only — no markdown fences around it.
+Choose the most appropriate Mermaid diagram type automatically.
+
+Examples:
+- DBMS → erDiagram
+- Java/OOP → classDiagram
+- React/Algorithms → flowchart
+- Networking/APIs → sequenceDiagram
+- Operating Systems → stateDiagram-v2
+- Trees & Graphs → graph
+- Theory → mindmap
+
+Never choose randomly. Pick the diagram type that best matches the assignment topic.
+For the "images" field:
+
+Quick:
+- Return an empty array [].
+
+Standard:
+- Return exactly 1 educational image for each concept.
+- Images must be specific to the assignment topic.
+- Use search queries that find diagrams, architecture images, illustrations, screenshots, flowcharts or visual explanations.
+
+Deep Dive:
+- Return 2 educational images for every concept.
+- Prefer high-quality educational visuals.
+- Use assignment-specific image searches.
+
+Examples:
+
+DBMS:
+- ER Diagram
+- Normalization Example
+- SQL Execution Plan
+
+Operating Systems:
+- Process State Diagram
+- CPU Scheduling Timeline
+
+Computer Networks:
+- OSI Model Diagram
+- TCP Three-Way Handshake
+
+Java:
+- UML Class Diagram
+- JVM Memory Layout
+
+React:
+- Component Tree
+- React Lifecycle Diagram
+
+Data Structures:
+- Binary Tree
+- AVL Tree Rotation
+- Graph Traversal
+
+Always infer the correct images from the assignment. Never reuse these examples unless they match the topic.
 
 For "commonMistakes": ${spec.mistakeCount} specific to this kind of assignment. For
 each, explain why students tend to make it (the misconception behind it) and one
 concrete way to avoid it — not just a restatement of the mistake.
 
-For "resources": exactly 3 resources. Every single one MUST include a non-empty
-"searchQuery" — this field is required, never omit it or leave it blank. The note
-must say what SPECIFIC section or aspect of the resource is relevant here, not
-"gives an overview of X". Instead of guessing a URL (which is often wrong or dead),
-"searchQuery" is the exact search phrase a student should type to find that
-specific resource/section.
+For "resources": ${spec.resourceRule} When resources are requested, every single one
+MUST include a non-empty "searchQuery" — this field is required, never omit it or
+leave it blank. The note must say what SPECIFIC section or aspect of the resource is
+relevant here, not "gives an overview of X". Instead of guessing a URL (which is
+often wrong or dead), "searchQuery" is the exact search phrase a student should type
+to find that specific resource/section — for "article" type it's a web search
+phrase, for "video" type it's a YouTube search phrase.
 
 Return JSON:
 {
   "whatIsAsked": "...",
-  "keyConcepts": [{"name": "...", "explanation": "...", "example": "...", "diagram": "mermaid syntax or empty string"}],
-  "commonMistakes": [{"mistake": "...", "whyItHappens": "...", "howToAvoid": "..."}],
-  "resources": [{"title": "...", "note": "specific and non-generic", "searchQuery": "exact search phrase, required, never blank"}]
+  "keyConcepts": [{
+  "name": "...",
+  "explanation": "...",
+  "example": "...",
+  "diagram": "mermaid syntax or empty string",
+  "images": [{
+    "title": "Image title",
+    "searchQuery": "Google image search query"
+     },
+  {
+    "title": "Second image title",
+    "searchQuery": "Second Google image search query"
+  }
+]
+}],
+  "commonMistakes": [{
+    "mistake": "...",
+    "whyItHappens": "...",
+    "howToAvoid": "..."
+  }],
+  "resources": [{
+    "title": "...",
+    "note": "...",
+    "searchQuery": "...",
+    "type": "article or video"
+  }]
 }`;
   const raw = await callLLM(prompt);
   return await parseJSON<ExplainContent>(raw);

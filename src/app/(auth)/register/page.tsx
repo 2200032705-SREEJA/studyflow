@@ -5,6 +5,20 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+function extractErrorMessage(error: unknown): string {
+  if (!error) return "Registration failed.";
+  if (typeof error === "string") return error;
+  if (typeof error === "object") {
+    const err = error as { formErrors?: string[]; fieldErrors?: Record<string, string[]> };
+    if (err.formErrors?.[0]) return err.formErrors[0];
+    if (err.fieldErrors) {
+      const firstField = Object.values(err.fieldErrors).find((msgs) => msgs?.length);
+      if (firstField?.[0]) return firstField[0];
+    }
+  }
+  return "Registration failed.";
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -34,7 +48,7 @@ export default function RegisterPage() {
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error?.formErrors?.[0] ?? data.error ?? "Registration failed.");
+      setError(extractErrorMessage(data.error));
       setLoading(false);
       return;
     }

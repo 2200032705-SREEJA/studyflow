@@ -213,27 +213,44 @@ function ExplainTab({ assignment, initial }: { assignment: Assignment; initial: 
               ))}
             </div>
           </Section>
+          {data.content.resources?.length > 0 && (
           <Section title="Suggested resources">
             <ul className="flex flex-col gap-1 text-sm text-ink/80 dark:text-paper/80">
-              {data.content.resources?.map((r: any, i: number) => (
-                <li key={i}>
-                  {r.searchQuery ? (
-                    <a
-                      href={`https://www.google.com/search?q=${encodeURIComponent(r.searchQuery)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-amber-dark underline hover:text-amber dark:text-amber-light"
-                    >
-                      {r.title}
-                    </a>
-                  ) : (
-                    <span className="font-medium">{r.title}</span>
-                  )}{" "}
-                  — {r.note}
-                </li>
-              ))}
+              {data.content.resources?.map((r: any, i: number) => {
+                const isVideo = r.type === "video";
+                const href = r.searchQuery
+                  ? isVideo
+                    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(r.searchQuery)}`
+                    : `https://www.google.com/search?q=${encodeURIComponent(r.searchQuery)}`
+                  : null;
+                return (
+                  <li
+  key={i}
+  className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 mb-3"
+>
+                    {isVideo && <span className="mr-1 text-xs">▶</span>}
+                    {href ? (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-amber-dark underline hover:text-amber dark:text-amber-light"
+                      >
+                        <>
+  {isVideo ? "🎥 " : "📄 "}
+  {r.title}
+</>
+                      </a>
+                    ) : (
+                      <span className="font-medium">{r.title}</span>
+                    )}{" "}
+                    — {r.note}
+                  </li>
+                );
+              })}
             </ul>
           </Section>
+          )}
           <div className="flex justify-end">
             <Button variant="ghost" onClick={generate}>
               ↻ Regenerate
@@ -280,7 +297,25 @@ function ConceptCard({ assignmentId, concept }: { assignmentId: string; concept:
         </pre>
       )}
       {concept.diagram && <MermaidDiagram code={concept.diagram} />}
+      {concept.images?.length > 0 && (
+  <div className="mt-4 rounded-lg border p-3">
+    <h4 className="font-semibold mb-2">📷 Visual References</h4>
 
+    <div className="space-y-2">
+      {concept.images.map((image, index) => (
+        <a
+          key={index}
+          href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(image.searchQuery)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-blue-600 hover:underline"
+        >
+          🖼 {image.title}
+        </a>
+      ))}
+    </div>
+  </div>
+)}
       <button
         onClick={handleExplainMore}
         disabled={loading}
