@@ -4,20 +4,41 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkspaceClient } from "./WorkspaceClient";
 
-export default async function AssignmentPage({ params }: { params: { id: string } }) {
+type PageProps = {
+  params: Promise<{
+    id: string;
+  }>;
+};
+
+export default async function AssignmentPage({ params }: PageProps) {
+  const { id } = await params;
+
   const session = await getServerSession(authOptions);
   const userId = (session!.user as { id: string }).id;
 
   const assignment = await prisma.assignment.findFirst({
-    where: { id: params.id, userId }
+    where: { id, userId },
   });
+
   if (!assignment) notFound();
 
   const [explain, plan, review, viva] = await Promise.all([
-    prisma.explainResult.findFirst({ where: { assignmentId: assignment.id }, orderBy: { createdAt: "desc" } }),
-    prisma.planResult.findFirst({ where: { assignmentId: assignment.id }, orderBy: { createdAt: "desc" } }),
-    prisma.reviewResult.findFirst({ where: { assignmentId: assignment.id }, orderBy: { createdAt: "desc" } }),
-    prisma.vivaResult.findFirst({ where: { assignmentId: assignment.id }, orderBy: { createdAt: "desc" } })
+    prisma.explainResult.findFirst({
+      where: { assignmentId: assignment.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.planResult.findFirst({
+      where: { assignmentId: assignment.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.reviewResult.findFirst({
+      where: { assignmentId: assignment.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.vivaResult.findFirst({
+      where: { assignmentId: assignment.id },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   return (
